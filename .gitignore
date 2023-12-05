@@ -1,3 +1,6 @@
 input.txt
 */target
 
+# For creating projects for each day automatically
+create-day
+template.rs
