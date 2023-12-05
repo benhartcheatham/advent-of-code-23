@@ -25,25 +25,12 @@ fn parse_pull<'a>(pull: &'a str) -> Vec<(&'a str, u32)> {
     cubes
 }
 
-fn check_cubes(map: &HashMap<&str, u32>, cubes: &Vec<(&str, u32)>) -> bool {
-    for c in cubes {
-        match map.get(c.0) {
-            Some(v) => if *v > c.1 { return false; },
-            None => { return false; },
-        }
-    }
-
-    true
-}
-
 fn solution(input: &str) -> u32 {
     let lines: Vec<&str> = input.split("\n").collect();
-    let cubes = vec![("red", 12), ("green", 13), ("blue", 14)];
     let mut sum = 0;
 
-    for (i, g) in lines.iter().enumerate() {
+    for g in lines.iter() {
         let mut map: HashMap<&str, u32> = HashMap::new();
-        let id = i + 1;
         let data = (*g.split(":").collect::<Vec<&str>>().last().unwrap()).trim();
         let pulls: Vec<&str> = data.split(";").collect();
 
@@ -56,9 +43,7 @@ fn solution(input: &str) -> u32 {
             }
         }
 
-        if check_cubes(&map, &cubes) {
-           sum += id;
-        }
+        sum += map.into_values().reduce(|acc, e| acc * e).unwrap_or(0);
     }
 
     sum as u32
