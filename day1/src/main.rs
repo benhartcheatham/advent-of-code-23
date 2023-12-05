@@ -8,7 +8,7 @@ fn main() -> Result<(), io::Error> {
 }
 
 fn check_line(line: &str) -> String {
-    let words = vec![
+    let words = [
         "one", "two", "three", "four", "five", "six", "seven", "eight", "nine",
     ];
     let mut ret = line.to_string();
@@ -25,7 +25,7 @@ fn check_line(line: &str) -> String {
 }
 
 fn solution(input: &str) -> u32 {
-    let lines: Vec<&str> = input.split("\n").collect();
+    let lines: Vec<&str> = input.split('\n').collect();
     let mut nums = Vec::new();
 
     for c in lines {
