@@ -35,12 +35,10 @@ fn get_num_cards(mut card_instances: Vec<(u32, u32)>) -> u32 {
         let (n, p) = card_instances[i];
 
         if p > 0 {
-            for _ in 0..n {
-                for j in 0..(p as usize) {
-                    let k = (j + 1) % (len - i);
-                    let (nk, pk) = card_instances[i + k];
-                    card_instances[i + k] = (nk + 1, pk);
-                }
+            for j in 0..(p as usize) {
+                let k = (j + 1) % (len - i);
+                let (nk, pk) = card_instances[i + k];
+                card_instances[i + k] = (nk + n, pk);
             }
         }
     }
