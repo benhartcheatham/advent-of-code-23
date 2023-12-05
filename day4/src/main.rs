@@ -8,7 +8,7 @@ fn main() -> Result<(), io::Error> {
     Ok(())
 }
 
-fn get_points(winning: &str, have: &str) -> u32 {
+fn get_matching(winning: &str, have: &str) -> u32 {
     let mut sum = 0;
     let mut wnums = HashSet::new();
 
@@ -21,11 +21,31 @@ fn get_points(winning: &str, have: &str) -> u32 {
 
     for n in have.split_whitespace().map(|s| s.parse::<u32>().unwrap()) {
         if wnums.contains(&n) {
-            sum = if sum > 0 { sum * 2 } else { 1 };
+            sum += 1;
         }
     }
 
     sum
+}
+
+fn get_num_cards(mut card_instances: Vec<(u32, u32)>) -> u32 {
+    let len = card_instances.len();
+
+    for i in 0..len {
+        let (n, p) = card_instances[i];
+
+        if p > 0 {
+            for _ in 0..n {
+                for j in 0..(p as usize) {
+                    let k = (j + 1) % (len - i);
+                    let (nk, pk) = card_instances[i + k];
+                    card_instances[i + k] = (nk + 1, pk);
+                }
+            }
+        }
+    }
+
+    card_instances.iter().map(|(i, _)| i).sum()
 }
 
 fn solution(input: &str) -> u32 {
@@ -33,15 +53,16 @@ fn solution(input: &str) -> u32 {
         .lines()
         .map(|s| s[(s.find(':').unwrap() + 1)..].to_string())
         .collect();
-    let mut sum: u32 = 0;
+    // holds (num card instances for card i, num points for card i)
+    let mut card_instances: Vec<(u32, u32)> = Vec::new();
 
     for l in lines {
         let bar = l.find('|').unwrap();
         let l = l.replace('|', " ");
         let (winning, have) = l.split_at(bar + 1);
 
-        sum += get_points(winning, have);
+        card_instances.push((1, get_matching(winning, have)));
     }
 
-    sum
+    get_num_cards(card_instances)
 }
