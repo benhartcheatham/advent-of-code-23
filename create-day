@@ -1,0 +1,18 @@
+#!/bin/bash
+
+USAGE="usage: create-day [<day-number>]\n\tCreates a new cargo project with the name day<day-number> with\n\ta template for solutions"
+PWD=$(pwd)
+if [ $PWD != "/home/bcheatha/advent-of-code-23" ]; then
+	echo "Must run in advent-of-code directory!"
+	exit 1
+fi
+
+if [ -z "$1" ]; then
+	echo -e $USAGE
+	exit 1
+fi
+
+DAY="day$1"
+cargo new $DAY
+rm $DAY/src/main.rs
+cp template.rs $DAY/src/main.rs
