@@ -38,11 +38,11 @@ fn construct_numbers(line: &str, idx: usize) -> Option<Vec<u32>> {
         .collect();
     let ret: Vec<u32> = filter
         .split_whitespace()
-        .filter(|s| s.len() > 0)
+        .filter(|s| !s.is_empty())
         .map(|s| s.parse::<u32>().unwrap())
         .collect();
 
-    if ret.len() > 0 {
+    if !ret.is_empty() {
         Some(ret)
     } else {
         None
@@ -53,14 +53,12 @@ fn construct_numbers(line: &str, idx: usize) -> Option<Vec<u32>> {
 fn find_numbers(lines: &[Option<&str>], idx: usize) -> Vec<u32> {
     let mut nums = Vec::new();
 
-    for line in lines {
-        if let Some(l) = line {
-            let ns = construct_numbers(l, idx);
+    for line in lines.iter().flatten() {
+        let ns = construct_numbers(line, idx);
 
-            if ns.is_some() {
-                for n in ns.unwrap() {
-                    nums.push(n)
-                }
+        if let Some(ns) = ns {
+            for n in ns {
+                nums.push(n)
             }
         }
     }
