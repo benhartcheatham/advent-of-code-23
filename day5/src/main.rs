@@ -1,13 +1,14 @@
+use std::thread;
 use std::{fs, io};
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 struct MapEntry {
     source: u64,
     dest: u64,
     range: u64,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct Map {
     entries: Vec<MapEntry>,
 }
@@ -21,12 +22,8 @@ impl MapEntry {
         }
     }
 
-    fn contains_seed(&self, seed: u64) -> bool {
-        self.source <= seed && seed <= (self.source + self.range)
-    }
-
     fn get_seed_mapping(&self, seed: u64) -> u64 {
-        if self.contains_seed(seed) {
+        if self.source <= seed && seed < (self.source + self.range) {
             seed - self.source + self.dest
         } else {
             seed
@@ -47,8 +44,9 @@ impl Map {
 
     fn get_mapping(&self, seed: u64) -> u64 {
         for e in &self.entries {
-            if e.contains_seed(seed) {
-                return e.get_seed_mapping(seed);
+            let m = e.get_seed_mapping(seed);
+            if m != seed {
+                return m;
             }
         }
 
@@ -89,7 +87,6 @@ fn solution(input: &str) -> u64 {
         .skip(1)
         .map(|s| s.parse::<u64>().unwrap())
         .collect();
-    let mut locations: Vec<u64> = Vec::new();
     let mut maps: Vec<Map> = Vec::new();
 
     let mut map = Map::new();
@@ -113,8 +110,27 @@ fn solution(input: &str) -> u64 {
         maps.push(map);
     }
 
-    for s in seeds {
-        locations.push(find_location(s, &maps));
+    let mut handles = Vec::new();
+    let ranges = seeds.chunks(2);
+    for r in ranges {
+        let (start, range) = (r[0], r[1]);
+        let m = maps.clone();
+        let h = thread::spawn(move || {
+            let mut min = u64::MAX;
+
+            for i in 0..range {
+                min = min.min(find_location(start + i, &m));
+            }
+
+            min
+        });
+
+        handles.push(h);
+    }
+
+    let mut locations = Vec::new();
+    for h in handles {
+        locations.push(h.join().unwrap());
     }
 
     *locations.iter().min().unwrap()
