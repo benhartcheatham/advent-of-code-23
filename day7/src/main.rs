@@ -34,6 +34,22 @@ impl<'a> Hand<'a> {
             map.entry(c).and_modify(|n| *n += 1).or_insert(1);
         }
 
+        // transform jokers into best card
+        if map.len() > 1 && map.contains_key(&'J') {
+            let j_num: u32 = map.remove(&'J').unwrap();
+
+            // find max card
+            let (mut max_key, mut max_val) = ('0', 0);
+            for (k, v) in map.iter() {
+                if *v > max_val {
+                    max_key = *k;
+                    max_val = *v;
+                }
+            }
+
+            map.entry(max_key).and_modify(|n| *n += j_num);
+        }
+
         match map.len() {
             1 => 7,
             2 => {
