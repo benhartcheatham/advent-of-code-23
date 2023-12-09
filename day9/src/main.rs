@@ -34,19 +34,17 @@ fn solution(input: &str) -> i32 {
     for line in lines {
         let mut derivatives: Vec<Vec<i32>> = compute_derivative(
             line.split_whitespace()
+                .rev()
                 .map(|n| n.parse::<i32>().unwrap())
                 .collect(),
-        )
-        .iter()
-        .map(|v| v.iter().copied().rev().collect())
-        .collect();
+        );
 
         for i in (1..derivatives.len()).rev() {
             let di_len = derivatives[i].len();
             let ni = derivatives[i][di_len - 1];
             let dj = &mut derivatives[i - 1];
 
-            dj.push(dj.last().unwrap() - ni);
+            dj.push(dj.last().unwrap() + ni);
         }
 
         ret.push(*derivatives[0].last().unwrap());
