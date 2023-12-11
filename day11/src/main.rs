@@ -2,6 +2,8 @@ use std::collections::HashSet;
 use std::fmt::Display;
 use std::io;
 
+const EXPANSION_CONST: usize = 1_000_000;
+
 #[derive(Debug)]
 #[allow(unused)]
 struct Galaxy {
@@ -68,17 +70,21 @@ fn solution(input: &str) -> u64 {
         .collect();
 
     for (i, r) in expand_rows.iter().enumerate() {
+        let expanded = r + i * (EXPANSION_CONST - 1);
+
         for g in space.iter_mut() {
-            if g.coords.0 > (r + i) {
-                g.coords.0 += 1;
+            if g.coords.0 > expanded {
+                g.coords.0 += EXPANSION_CONST - 1;
             }
         }
     }
 
     for (j, c) in expand_columns.iter().enumerate() {
+        let expanded = c + j * (EXPANSION_CONST - 1);
+
         for g in space.iter_mut() {
-            if g.coords.1 > (c + j) {
-                g.coords.1 += 1;
+            if g.coords.1 > expanded {
+                g.coords.1 += EXPANSION_CONST - 1;
             }
         }
     }
