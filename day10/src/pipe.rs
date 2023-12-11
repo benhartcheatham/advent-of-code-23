@@ -132,7 +132,7 @@ pub fn traverse_loop(
     let (sr, sc) = start;
     let (lr, lc) = last;
 
-    if sr >= pipes.len() || sc >= pipes[0].len() || lr >= pipes.len() || lc >= pipes.len() {
+    if sr >= pipes.len() || sc >= pipes[0].len() || lr >= pipes.len() || lc >= pipes[0].len() {
         return;
     }
 
