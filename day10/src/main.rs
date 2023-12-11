@@ -60,17 +60,20 @@ fn solution(input: &str) -> usize {
     println!("Traversing loop...");
     traverse_loop(start_pos, start_pos, 0, &mut pipes);
 
-    let mut max = 0;
+    let mut n = 0;
     for (i, r) in pipes.iter().enumerate() {
         print!("{:4}: ", i);
+
+        let mut inside = false;
         for p in r {
             if p.is_marked() {
                 print!("{}", p);
-                let steps = p.get_steps();
-
-                if steps > max {
-                    max = steps;
+                if p.is_intersection() {
+                    inside = !inside;
                 }
+            } else if inside {
+                n += 1;
+                print!("O");
             } else {
                 print!(" ");
             }
@@ -79,5 +82,5 @@ fn solution(input: &str) -> usize {
         println!();
     }
 
-    (max as f64 / 2.0).round() as usize
+    n
 }

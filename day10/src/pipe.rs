@@ -13,13 +13,17 @@ pub struct Pipe {
 
 impl Display for Pipe {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if self.is_start {
+            return write!(f, "S");
+        }
+
         let c = match self.components {
-            [true, true, false, false] => '│',
-            [true, false, true, false] => '└',
-            [true, false, false, true] => '┘',
-            [false, true, true, false] => '┌',
-            [false, true, false, true] => '┐',
-            [false, false, true, true] => '─',
+            [true, true, false, false] => '┃',
+            [true, false, true, false] => '┗',
+            [true, false, false, true] => '┛',
+            [false, true, true, false] => '┏',
+            [false, true, false, true] => '┓',
+            [false, false, true, true] => '━',
             [false, false, false, false] => '.',
             _ => '.',
         };
@@ -44,6 +48,19 @@ impl Pipe {
         self.marked
     }
 
+    pub fn is_intersection(&self) -> bool {
+        match self.components {
+            // NS "|"
+            [true, true, false, false] => true,
+            // SE "F"
+            [false, true, true, false] => true,
+            // SW "7"
+            [false, true, false, true] => true,
+            _ => false,
+        }
+    }
+
+    #[allow(unused)]
     pub fn get_steps(&self) -> usize {
         self.step_cnt
     }
@@ -92,16 +109,16 @@ pub fn find_start_kind(start: (usize, usize), pipes: &Vec<Vec<Pipe>>) -> Pipe {
 
     if r > 0 {
         let other = &pipes[r - 1][c];
-        if other.components[0] {
-            connections[1] = true;
+        if other.components[1] {
+            connections[0] = true;
         }
     }
 
     if r < pipes.len() - 1 {
         let other = &pipes[r + 1][c];
 
-        if other.components[1] {
-            connections[0] = true;
+        if other.components[0] {
+            connections[1] = true;
         }
     }
 
@@ -151,8 +168,7 @@ pub fn traverse_loop(
     pipe.step_cnt = steps;
 
     let edges = pipe.edges.clone();
-    for e in edges.iter().copied().filter(|p| *p != last) {
-        // println!("{:?} -> {:?}", start, e);
+    for e in edges.iter().copied() {
         traverse_loop(e, start, steps + 1, pipes);
     }
 }
