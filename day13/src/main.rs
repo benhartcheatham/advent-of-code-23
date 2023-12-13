@@ -20,14 +20,15 @@ fn main() -> Result<(), io::Error> {
 }
 
 fn find_horizontal_solution(rows: &Vec<String>) -> u64 {
-    let mut reflection_point;
+    let mut reflection_points = Vec::new();
 
     for (r0, r1) in (0..rows.len()).tuple_windows() {
-        if rows[r0] == rows[r1] {
-            reflection_point = r0;
+
+        let reflection_point = if rows[r0] == rows[r1] {
+            r0
         } else {
             continue;
-        }
+        };
 
         let mut found = true;
         for (i, j) in ((reflection_point + 1)..rows.len()).zip((0..=reflection_point).rev()) {
@@ -38,6 +39,56 @@ fn find_horizontal_solution(rows: &Vec<String>) -> u64 {
         }
 
         if found {
+            reflection_points.push(reflection_point as u64);
+        }
+    }
+
+    for (r0, r1) in (0..rows.len()).tuple_windows() {
+        let mut smudge_found = false;
+        let reflection_point;
+        let diff: Vec<u64> = rows[r0]
+            .char_indices()
+            .zip(rows[r1].char_indices())
+            .filter(|((_, c0), (_, c1))| c0 != c1)
+            .map(|((r0, _), (_, _))| r0 as u64)
+            .collect();
+
+        if diff.len() == 1 {
+            reflection_point = r0;
+            smudge_found = true;
+        } else if diff.is_empty() {
+            reflection_point = r0;
+        } else {
+            continue;
+        }
+
+        let mut found = true;
+        for (i, j) in ((reflection_point + 2)..rows.len()).zip((0..reflection_point).rev()) {
+            let diff: Vec<u64> = rows[i]
+                .char_indices()
+                .zip(rows[j].char_indices())
+                .filter(|((_, ci), (_, cj))| ci != cj)
+                .map(|((ri, _), (_, _))| ri as u64)
+                .collect();
+
+            match diff.len() {
+                1 => {
+                    if !smudge_found {
+                        smudge_found = true;
+                    } else {
+                        found = false;
+                        break;
+                    }
+                }
+                0 => continue,
+                _ => {
+                    found = false;
+                    break;
+                }
+            }
+        }
+
+        if found && !reflection_points.contains(&(r0 as u64)) {
             return reflection_point as u64 + 1;
         }
     }
