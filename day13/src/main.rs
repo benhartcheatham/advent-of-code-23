@@ -1,5 +1,4 @@
 use clap::{arg, command, ArgAction};
-use itertools::*;
 use std::io;
 
 fn main() -> Result<(), io::Error> {
@@ -22,16 +21,9 @@ fn main() -> Result<(), io::Error> {
 fn find_horizontal_solution(rows: &Vec<String>) -> u64 {
     let mut reflection_points = Vec::new();
 
-    for (r0, r1) in (0..rows.len()).tuple_windows() {
-
-        let reflection_point = if rows[r0] == rows[r1] {
-            r0
-        } else {
-            continue;
-        };
-
+    for i in 0..rows.len() {
         let mut found = true;
-        for (i, j) in ((reflection_point + 1)..rows.len()).zip((0..=reflection_point).rev()) {
+        for (i, j) in ((i + 1)..rows.len()).zip((0..=i).rev()) {
             if rows[i] != rows[j] {
                 found = false;
                 break;
@@ -39,36 +31,20 @@ fn find_horizontal_solution(rows: &Vec<String>) -> u64 {
         }
 
         if found {
-            reflection_points.push(reflection_point as u64);
+            reflection_points.push(i as u64);
         }
     }
 
-    for (r0, r1) in (0..rows.len()).tuple_windows() {
+    for i in 0..rows.len() {
         let mut smudge_found = false;
-        let reflection_point;
-        let diff: Vec<u64> = rows[r0]
-            .char_indices()
-            .zip(rows[r1].char_indices())
-            .filter(|((_, c0), (_, c1))| c0 != c1)
-            .map(|((r0, _), (_, _))| r0 as u64)
-            .collect();
-
-        if diff.len() == 1 {
-            reflection_point = r0;
-            smudge_found = true;
-        } else if diff.is_empty() {
-            reflection_point = r0;
-        } else {
-            continue;
-        }
-
         let mut found = true;
-        for (i, j) in ((reflection_point + 2)..rows.len()).zip((0..reflection_point).rev()) {
-            let diff: Vec<u64> = rows[i]
+
+        for (j, k) in ((i + 1)..rows.len()).zip((0..=i).rev()) {
+            let diff: Vec<u64> = rows[j]
                 .char_indices()
-                .zip(rows[j].char_indices())
-                .filter(|((_, ci), (_, cj))| ci != cj)
-                .map(|((ri, _), (_, _))| ri as u64)
+                .zip(rows[k].char_indices())
+                .filter(|((_, cj), (_, ck))| cj != ck)
+                .map(|((rj, _), (_, _))| rj as u64)
                 .collect();
 
             match diff.len() {
@@ -88,8 +64,8 @@ fn find_horizontal_solution(rows: &Vec<String>) -> u64 {
             }
         }
 
-        if found && !reflection_points.contains(&(r0 as u64)) {
-            return reflection_point as u64 + 1;
+        if found && !reflection_points.contains(&(i as u64)) {
+            return i as u64 + 1;
         }
     }
 
