@@ -66,20 +66,17 @@ fn insert_lens(lens: &str, boxes: &mut HashMap<u64, Vec<(String, u64)>>) {
 
 fn solution(input: &str) -> u64 {
     let sequence: Vec<_> = input.trim().split(',').collect();
-    let mut fpower = 0;
 
     let mut boxes = HashMap::new();
     for s in sequence {
         insert_lens(s, &mut boxes);
     }
 
-    for (b, v) in boxes {
-        fpower += v
+    boxes.iter().fold(0, |pow, (b, v)| {
+        pow + v
             .iter()
             .enumerate()
             .map(|(i, l)| (1 + b) * (i as u64 + 1) * l.1)
-            .sum::<u64>();
-    }
-
-    fpower
+            .sum::<u64>()
+    })
 }
