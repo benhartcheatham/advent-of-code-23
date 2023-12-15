@@ -18,6 +18,6 @@ fn main() -> Result<(), io::Error> {
     Ok(())
 }
 
-fn solution(input: &str) -> u32 {
+fn solution(input: &str) -> u64 {
     0
 }
