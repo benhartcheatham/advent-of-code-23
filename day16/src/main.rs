@@ -1,6 +1,8 @@
 use clap::{arg, command, ArgAction};
 use std::io;
+use std::thread;
 
+#[derive(Clone, Copy)]
 struct Tile {
     energized: bool,
     direction: (i32, i32),
@@ -197,20 +199,10 @@ fn main() -> Result<(), io::Error> {
     Ok(())
 }
 
-fn solution(input: &str) -> u64 {
-    let lines: Vec<_> = input.lines().collect();
-    let mut tiles = Vec::new();
+fn calculate_beam(beam: LightBeam, mut tiles: Vec<Vec<Tile>>) -> u64 {
     let mut beams = Vec::new();
+    beams.push(beam);
 
-    for (i, line) in lines.iter().enumerate() {
-        tiles.push(Vec::new());
-
-        for (_, c) in line.char_indices() {
-            tiles[i].push(Tile::new(c));
-        }
-    }
-
-    beams.push(LightBeam::new((0, 0), (0, 1)));
     while beams.iter().any(|b| !b.cleanup) {
         let mut new_beams = Vec::new();
 
@@ -231,4 +223,63 @@ fn solution(input: &str) -> u64 {
             .map(|t| if t.energized { 1 } else { 0 })
             .sum::<u64>()
     })
+}
+
+fn solution(input: &str) -> u64 {
+    let lines: Vec<_> = input.lines().collect();
+    let mut tiles = Vec::new();
+    let mut handles = Vec::new();
+
+    for (i, line) in lines.iter().enumerate() {
+        tiles.push(Vec::new());
+
+        for (_, c) in line.char_indices() {
+            tiles[i].push(Tile::new(c));
+        }
+    }
+
+    for i in 0..tiles.len() {
+        let t1 = tiles.clone();
+        let t2 = tiles.clone();
+
+        let h1 = thread::spawn(move || {
+            let beam = LightBeam::new((i, 0), (0, 1));
+            calculate_beam(beam, t1)
+        });
+
+        handles.push(h1);
+
+        let h2 = thread::spawn(move || {
+            let beam = LightBeam::new((i, t2[0].len() - 1), (0, -1));
+            calculate_beam(beam, t2)
+        });
+
+        handles.push(h2);
+    }
+
+    for j in 0..tiles[0].len() {
+        let t1 = tiles.clone();
+        let t2 = tiles.clone();
+
+        let h1 = thread::spawn(move || {
+            let beam = LightBeam::new((0, j), (1, 0));
+            calculate_beam(beam, t1)
+        });
+
+        handles.push(h1);
+
+        let h2 = thread::spawn(move || {
+            let beam = LightBeam::new((t2.len() - 1, j), (-1, 0));
+            calculate_beam(beam, t2)
+        });
+
+        handles.push(h2);
+    }
+
+    let mut sols = Vec::new();
+    for h in handles {
+        sols.push(h.join().unwrap());
+    }
+
+    *sols.iter().max().unwrap()
 }
