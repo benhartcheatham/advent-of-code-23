@@ -106,6 +106,10 @@ impl Vertex {
     fn can_turn(&self, turn_dir: Direction, weights: &Vec<Vec<u64>>) -> bool {
         use Direction::*;
 
+        if self.steps < 4 {
+            return false;
+        }
+
         match (self.dir, turn_dir) {
             (Up, Right) | (Down, Right) => self.col < weights[0].len() - 1,
             (Up, Left) | (Down, Left) => self.col > 0,
@@ -155,7 +159,7 @@ impl Vertex {
     fn go_straight(&self, weights: &Vec<Vec<u64>>) -> Option<Vertex> {
         use Direction::*;
 
-        if self.steps == 3 {
+        if self.steps >= 10 {
             return None;
         }
 
@@ -223,6 +227,7 @@ fn find_path(start: (usize, usize), target: (usize, usize), weights: &Vec<Vec<u6
     let mut seen: HashSet<((usize, usize), Direction, usize)> = HashSet::new();
 
     queue.push(Vertex::new(start.0, start.1, Direction::Right, 0, 0));
+    queue.push(Vertex::new(start.0, start.1, Direction::Down, 0, 0));
 
     while !queue.is_empty() {
         let u = queue.pop().unwrap();
@@ -240,6 +245,9 @@ fn find_path(start: (usize, usize), target: (usize, usize), weights: &Vec<Vec<u6
             }
 
             if let Some(v) = u.go_straight(weights) {
+                if v.get_coords() == target && v.steps < 4 {
+                    continue;
+                }
                 dist.entry(v.get_coords())
                     .and_modify(|c| {
                         if v.cost < *c {
@@ -247,14 +255,8 @@ fn find_path(start: (usize, usize), target: (usize, usize), weights: &Vec<Vec<u6
                         }
                     })
                     .or_insert(v.cost);
-            } else if u.get_coords() == target {
-                dist.entry(u.get_coords())
-                    .and_modify(|c| {
-                        if u.cost < *c {
-                            *c = u.cost
-                        }
-                    })
-                    .or_insert(u.cost);
+
+                queue.push(v);
             }
         }
     }
