@@ -1,0 +1,33 @@
+#!/bin/bash
+
+DEPENDENCIES="clap -F cargo"
+USAGE="usage: create-day [<day-number>]\n\tCreates a new cargo project with the name day<day-number> with\n\ta template for solutions"
+PWD=$(pwd | rev | cut -d / -f 1 | rev)
+
+if [ $PWD == "autogen" ]; then
+	cd ..
+fi
+
+if [ $(pwd | rev | cut -d / -f 1 | rev) != "advent-of-code-23" ]; then
+	echo "Must run from advent-of-code-23 or advent-of-code-23/autogen!"
+	exit 1
+fi
+
+if [ -z "$1" ]; then
+	echo -e $USAGE
+	exit 1
+fi
+
+DAY="day$1"
+
+if [ -d "$DAY" ]; then
+	echo "Directory \"$DAY\" already exists!"
+	exit 1
+fi
+
+cargo new $DAY
+rm $DAY/src/main.rs
+cp autogen/template.rs $DAY/src/main.rs
+cd $DAY
+cargo add $DEPENDENCIES
+cd ..

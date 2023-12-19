@@ -1,0 +1,17 @@
+#!/bin/bash
+
+if [ -z "$GIT_PREFIX" ]; then
+	exit 0
+fi
+
+cargo fmt --all --check
+if [ $? -ne 0 ]; then
+	echo "Files not formatted correctly. Please run cargo fmt, re-add, and commit."
+	exit 1
+fi
+
+cargo clippy --no-deps -D warnings
+if [ $? -ne 0 ]; then
+	echo "Linter found problems with code. Fix, re-add, and commit."
+	exit 1
+fi
