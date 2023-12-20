@@ -21,16 +21,14 @@ impl From<char> for Direction {
     }
 }
 
-#[allow(unused)]
-struct Point<'a> {
+struct Point {
     x: i64,
     y: i64,
-    color: &'a str,
 }
 
-impl<'a> Point<'a> {
-    fn new(x: i64, y: i64, color: &'a str) -> Self {
-        Point { x, y, color }
+impl Point {
+    fn new(x: i64, y: i64) -> Self {
+        Point { x, y }
     }
 }
 
@@ -72,6 +70,38 @@ fn get_area(points: &[Point]) -> u64 {
     (interior + perimeter) as u64
 }
 
+fn map_hex(c: u8) -> i64 {
+    if c.is_ascii_digit() {
+        return (c - b'0') as i64;
+    }
+
+    if (b'a'..=b'f').contains(&c) {
+        return (c - b'a' + 10) as i64;
+    }
+
+    panic!("Invalid hex u8 {}!", c);
+}
+
+fn convert_hex(hex: &str) -> (i64, Direction) {
+    let digits: String = hex.chars().filter(|c| c.is_alphanumeric()).collect();
+    let num = digits
+        .as_bytes()
+        .iter()
+        .take(5)
+        .rev()
+        .enumerate()
+        .fold(0, |n, (i, u)| n + map_hex(*u) * 16i64.pow(i as u32));
+    let direction = match digits.chars().nth(5) {
+        Some('0') => Direction::Right,
+        Some('1') => Direction::Down,
+        Some('2') => Direction::Left,
+        Some('3') => Direction::Up,
+        _ => panic!("Invalid direction!"),
+    };
+
+    (num, direction)
+}
+
 fn solution(input: &str) -> u64 {
     let lines: Vec<_> = input.lines().collect();
     let mut points = Vec::new();
@@ -80,8 +110,7 @@ fn solution(input: &str) -> u64 {
     let mut y = 0;
     for line in lines {
         let parts: Vec<&str> = line.split_whitespace().collect();
-        let dir: Direction = parts[0].chars().next().unwrap().into();
-        let num: i64 = parts[1].parse().unwrap();
+        let (num, dir) = convert_hex(parts[2]);
 
         match dir {
             Direction::Up => y -= num,
@@ -90,7 +119,7 @@ fn solution(input: &str) -> u64 {
             Direction::Right => x += num,
         }
 
-        points.push(Point::new(x, y, parts[2]));
+        points.push(Point::new(x, y));
     }
 
     get_area(&points)
