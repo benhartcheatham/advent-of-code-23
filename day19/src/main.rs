@@ -3,7 +3,7 @@ use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::io;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 struct Rule {
     ch: char,
     comp: Ordering,
@@ -23,10 +23,6 @@ impl Rule {
             comp: rcomp,
             val,
         }
-    }
-
-    fn apply(&self, val: u64) -> bool {
-        self.comp == val.cmp(&self.val)
     }
 }
 
@@ -58,22 +54,6 @@ impl Workflow {
 
     fn set_end(&mut self, end: &str) {
         self.end = end.to_string();
-    }
-
-    fn run_workflow(&self, vals: &[u64; 4]) -> String {
-        if self.rules.is_empty() {
-            panic!("Empty Workflow {}!", self.name);
-        }
-
-        for (r, d) in &self.rules {
-            let ch = r.ch;
-
-            if r.apply(vals[ch_to_idx(ch)]) {
-                return d.clone();
-            }
-        }
-
-        self.end.clone()
     }
 }
 
@@ -136,25 +116,46 @@ fn parse_flows(input: &[&str]) -> HashMap<String, Workflow> {
     flows
 }
 
-fn run_flows(line: &str, flows: &HashMap<String, Workflow>) -> u64 {
-    let vars: Vec<&str> = line.split(',').collect();
-    let vals: Vec<u64> = vars
-        .iter()
-        .map(|s| s.chars().filter(|c| c.is_numeric()).collect())
-        .map(|s: String| s.parse::<u64>().unwrap())
-        .collect();
-    let vals: [u64; 4] = [vals[0], vals[1], vals[2], vals[3]];
-
-    let mut flow = String::from("in");
-    while let Some(f) = flows.get(&flow) {
-        let end = f.run_workflow(&vals);
-        match end.as_str() {
-            "A" => return vals.iter().sum::<u64>(),
-            "R" => return 0,
-            _ => flow = end,
+fn run_rules(dest: &str, mut ranges: [[u64; 2]; 4], flows: &HashMap<String, Workflow>) -> u64 {
+    match dest {
+        "A" => {
+            return ranges
+                .into_iter()
+                .map(|r| r[1].saturating_sub(r[0]))
+                .product()
         }
+        "R" => return 0,
+        _ => (),
     }
 
+    let mut t = 0;
+    if let Some(flow) = flows.get(dest) {
+        for (r, d) in flow.rules.iter() {
+            let range = ranges[ch_to_idx(r.ch)];
+
+            match ((range[0], range[1]), r.comp) {
+                ((_, u), Ordering::Less) if u <= r.val => {
+                    return t + run_rules(d, ranges, flows);
+                }
+                ((l, _), Ordering::Greater) if l > r.val => {
+                    return t + run_rules(d, ranges, flows);
+                }
+                ((l, u), Ordering::Less) if l < r.val => {
+                    ranges[ch_to_idx(r.ch)] = [l, r.val];
+                    t += run_rules(d, ranges, flows);
+                    ranges[ch_to_idx(r.ch)] = [r.val, u];
+                }
+                ((l, u), Ordering::Greater) if u >= r.val => {
+                    ranges[ch_to_idx(r.ch)] = [r.val + 1, u];
+                    t += run_rules(d, ranges, flows);
+                    ranges[ch_to_idx(r.ch)] = [l, r.val + 1];
+                }
+                _ => (),
+            }
+        }
+
+        return t + run_rules(&flow.end, ranges, flows);
+    }
     0
 }
 
@@ -162,7 +163,6 @@ fn solution(input: &str) -> u64 {
     let lines: Vec<_> = input.lines().collect();
     let mut ls: Vec<&str> = Vec::new();
     let mut flows: HashMap<String, Workflow> = HashMap::new();
-    let mut sum = 0;
 
     for line in &lines {
         if line.is_empty() {
@@ -173,9 +173,5 @@ fn solution(input: &str) -> u64 {
         ls.push(line);
     }
 
-    for line in lines.iter().skip(ls.len() + 1) {
-        sum += run_flows(line, &flows);
-    }
-
-    sum
+    run_rules("in", [[1, 4001]; 4], &flows)
 }
