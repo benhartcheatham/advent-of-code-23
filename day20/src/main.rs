@@ -1,4 +1,5 @@
 use clap::{arg, command, ArgAction};
+use gcd::Gcd;
 use std::collections::{HashMap, VecDeque};
 use std::hash::Hash;
 use std::io;
@@ -77,6 +78,8 @@ impl Module {
     fn process_signal(
         id: usize,
         modules: &mut [Module],
+        iter: usize,
+        watch: &mut HashMap<usize, usize>,
     ) -> Option<VecDeque<((usize, usize), bool)>> {
         if let Some(module) = modules.get_mut(id) {
             if let Some((idx, pulse)) = module.pulses.pop() {
@@ -91,6 +94,15 @@ impl Module {
                     }
                     ModType::Conjunction => {
                         module.conj_state.entry(idx).and_modify(|v| *v = pulse);
+                        let signal = !module.conj_state.values().all(|b| *b);
+
+                        if signal {
+                            watch.entry(module.id).and_modify(|v| {
+                                if *v == 0 {
+                                    *v = iter
+                                }
+                            });
+                        }
 
                         module.send_signal(!module.conj_state.values().all(|b| *b))
                     }
@@ -122,23 +134,18 @@ fn main() -> Result<(), io::Error> {
     Ok(())
 }
 
-fn run_module_loop(modules: &mut [Module]) -> (u64, u64) {
+fn run_module_loop(modules: &mut [Module], iter: usize, watch: &mut HashMap<usize, usize>) {
     let mut to_process = VecDeque::new();
     for s in modules[0].send_signal(false).unwrap() {
         to_process.push_back(s);
     }
 
-    let (mut low_cnt, mut high_cnt) = (0, 0);
-
     while let Some(((in_id, out_id), pulse)) = to_process.pop_front() {
-        if pulse {
-            high_cnt += 1;
-        } else {
-            low_cnt += 1;
-        }
-
         if in_id == out_id {
-            for s in Module::process_signal(in_id, modules).iter().flatten() {
+            for s in Module::process_signal(in_id, modules, iter, watch)
+                .iter()
+                .flatten()
+            {
                 to_process.push_front(*s);
             }
 
@@ -148,17 +155,10 @@ fn run_module_loop(modules: &mut [Module]) -> (u64, u64) {
         let module = &mut modules[out_id];
         module.pulses.push((in_id, pulse));
 
-        /* println!(
-            "{} {}-> {}",
-            modules[in_id].name,
-            match pulse {
-                true => "-high",
-                false => "-low",
-            },
-            modules[out_id].name
-        ); */
-
-        for s in Module::process_signal(out_id, modules).iter().flatten() {
+        for s in Module::process_signal(out_id, modules, iter, watch)
+            .iter()
+            .flatten()
+        {
             to_process.push_back(*s);
         }
 
@@ -166,15 +166,12 @@ fn run_module_loop(modules: &mut [Module]) -> (u64, u64) {
             to_process.push_front(((in_id, out_id), pulse));
         }
     }
-
-    (low_cnt, high_cnt)
 }
 
 pub fn solution(input: &str) -> u64 {
     let lines: Vec<_> = input.lines().collect();
     let mut modules = Vec::new();
     let mut cons: Vec<(usize, Vec<&str>)> = Vec::new();
-    let (mut low_cnt, mut high_cnt) = (0, 0);
 
     let mut broadcaster_id = 0;
     let mut id = 1;
@@ -236,11 +233,28 @@ pub fn solution(input: &str) -> u64 {
         }
     }
 
-    for _ in 0..1000 {
-        let (l, h) = run_module_loop(&mut modules);
-        low_cnt += l;
-        high_cnt += h;
+    let rx = modules.iter().find(|m| m.name.as_str() == "rx").unwrap();
+    let rx_parent = if rx.incoming.len() == 1 {
+        rx.incoming[0]
+    } else {
+        panic!()
+    };
+    let mut to_watch = HashMap::new();
+
+    for mod_id in modules[rx_parent].incoming.clone() {
+        to_watch.insert(mod_id, 0);
     }
 
-    low_cnt * high_cnt
+    let mut iterations = 1;
+    loop {
+        run_module_loop(&mut modules, iterations, &mut to_watch);
+        iterations += 1;
+
+        if to_watch.values().all(|v| *v != 0) {
+            break;
+        }
+    }
+
+    let lcm = |a: usize, b: usize| a * (b / a.gcd(b));
+    to_watch.into_values().reduce(lcm).unwrap() as u64
 }
