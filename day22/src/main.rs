@@ -1,5 +1,5 @@
 use clap::{arg, command, ArgAction};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::io;
 use std::ops::RangeInclusive;
 
@@ -9,8 +9,8 @@ struct Block {
     pos: [i64; 3],
     ranges: [Option<RangeInclusive<i64>>; 3],
     block_height: i64,
-    supporting: Option<Vec<usize>>,
-    supported_by: Option<Vec<usize>>,
+    supporting: Vec<usize>,
+    supported_by: Vec<usize>,
 }
 
 impl Block {
@@ -39,8 +39,8 @@ impl Block {
             pos: ps,
             ranges,
             block_height,
-            supporting: None,
-            supported_by: None,
+            supporting: vec![],
+            supported_by: vec![],
         }
     }
 
@@ -167,40 +167,38 @@ fn update_z(blocks: &mut [Block]) {
 
     for (b_id, b2_id) in supporting {
         let block = blocks.iter_mut().find(|fb| fb.id == b_id).unwrap();
-        match &mut block.supporting {
-            Some(ref mut sb) => sb.push(b2_id),
-            None => block.supporting = Some(vec![b2_id]),
-        }
+        block.supporting.push(b2_id);
 
         let block = blocks.iter_mut().find(|fb| fb.id == b2_id).unwrap();
-        match &mut block.supported_by {
-            Some(ref mut sb) => sb.push(b_id),
-            None => block.supported_by = Some(vec![b_id]),
-        }
+        block.supported_by.push(b_id);
     }
 }
 
-fn find_num_deleteable(blocks: &Vec<Block>) -> u64 {
-    let mut sum = 0;
+fn find_block(id: usize, blocks: &[Block]) -> &Block {
+    blocks.iter().find(|b| b.id == id).unwrap()
+}
 
-    for b in blocks {
-        if let Some(s) = &b.supporting {
-            if s.iter().all(|supported| {
-                let block = blocks.iter().find(|b| b.id == *supported).unwrap();
-                if let Some(v) = &block.supported_by {
-                    v.len() > 1
-                } else {
-                    false
-                }
-            }) {
-                sum += 1;
+fn find_chain_reaction(id: usize, blocks: &[Block]) -> u64 {
+    let mut falling = HashSet::new();
+    let mut queue = VecDeque::new();
+
+    falling.insert(id);
+    queue.push_back(id);
+
+    while let Some(id) = queue.pop_front() {
+        let block = find_block(id, blocks);
+
+        for b in &block.supporting {
+            let b2 = find_block(*b, blocks);
+
+            if b2.supported_by.iter().all(|sb| falling.contains(sb)) {
+                falling.insert(b2.id);
+                queue.push_back(b2.id);
             }
-        } else {
-            sum += 1;
         }
     }
 
-    sum
+    falling.len().saturating_sub(1) as u64
 }
 
 fn solution(input: &str) -> u64 {
@@ -235,5 +233,8 @@ fn solution(input: &str) -> u64 {
 
     blocks.sort();
 
-    find_num_deleteable(&blocks)
+    blocks
+        .iter()
+        .map(|b| find_chain_reaction(b.id, &blocks))
+        .sum::<u64>()
 }
